@@ -1,4 +1,5 @@
 local api, fn = vim.api, vim.fn
+local config = require("atone.config")
 local time_ago = require("atone.utils").time_ago
 
 --- get the character at column `col` (1-based index)
@@ -175,12 +176,12 @@ function M.convert(buf)
 end
 
 -- we should reverse the table: put the node with greater id in the smaller index
---      seq  id  index
--- @    [4]   5    1
--- |               2
--- | o  [3]   4    3
--- | |             4
--- | o  [2]   3    5
+--      seq  id  index                                                --      seq  id  index
+-- @    [4]   5    1                                                  -- @    [4]   5    1
+-- |               2                                                  -- | o  [3]   4    2
+-- | o  [3]   4    3                                                  -- o |  [2]   3    3
+-- | |             4                                                  -- o/   [1]   2    4
+-- | o  [2]   3    5                                                  -- o    [0]   1    5
 -- | |             6
 -- o |  [1]   2    7  <- a node
 -- |/              8  <- line after this node
@@ -217,33 +218,40 @@ function M.render()
 
     M.total = total
 
-    M.lines[2 * total - 1] = "●"
+    local compact = config.opts.ui.compact
+    if compact then
+        M.lines[total] = "●"
+    else
+        M.lines[2 * total - 1] = "●"
+    end
     id = 2
     while id <= total do
         local seq = seqs[id]
         local node = M.nodes[seq]
         local depth = node.depth
         local parent_depth = M.nodes[node.parent].depth
-        local node_lnum = (total - id) * 2 + 1
+        local node_lnum = compact and total - id + 1 or (total - id) * 2 + 1
         if depth == 1 then
             M.lines[node_lnum] = "●"
         else
             M.lines[node_lnum] = "│" .. (" "):rep(node.depth * 2 - 3) .. "●"
         end
-        M.lines[node_lnum + 1] = "│" -- line after this node
+        if not compact then
+            M.lines[node_lnum + 1] = "│" -- line after this node
+        end
         if not node.fork and depth ~= 1 then
             local lnum_is_drawing = node_lnum + 1
-            while
-                lnum_is_drawing < (total - M.seq_2id(node.parent)) * 2 + 1 -- index of parent node
-                and get_char(M.lines[lnum_is_drawing], depth * 2 - 1) ~= "●"
-            do
+            local parent_index = compact and total - M.seq_2id(node.parent) + 1 or (total - M.seq_2id(node.parent)) * 2 + 1 -- index of parent node
+            while lnum_is_drawing < parent_index and get_char(M.lines[lnum_is_drawing], depth * 2 - 1) ~= "●" do
                 if get_char(M.lines[lnum_is_drawing], depth * 2 - 1) ~= "├" then
                     M.lines[lnum_is_drawing] = set_char_at(M.lines[lnum_is_drawing], depth * 2 - 1, "│")
                 end
                 lnum_is_drawing = lnum_is_drawing + 1
             end
             if depth ~= parent_depth then
-                lnum_is_drawing = lnum_is_drawing - 1
+                if not compact or get_char(M.lines[lnum_is_drawing], depth * 2 - 1) == "●" then
+                    lnum_is_drawing = lnum_is_drawing - 1
+                end
                 if get_char(M.lines[lnum_is_drawing], depth * 2) == "─" then
                     --  ●
                     --  │
@@ -252,7 +260,15 @@ function M.render()
                     --  ^
                     M.lines[lnum_is_drawing] = set_char_at(M.lines[lnum_is_drawing], depth * 2 - 1, "┴")
                 else
-                    M.lines[lnum_is_drawing] = set_char_at(M.lines[lnum_is_drawing], depth * 2 - 1, "╯")
+                    -- condition check for compact style graph
+                    -- ●              ●
+                    -- │ ●            ├─●
+                    -- ├─╯    ->      ├─●
+                    -- │ ●            │ ●
+                    -- ●─╯            ●─╯
+                    if not compact or get_char(M.lines[lnum_is_drawing], depth * 2 - 1) ~= "●" then
+                        M.lines[lnum_is_drawing] = set_char_at(M.lines[lnum_is_drawing], depth * 2 - 1, "╯")
+                    end
                 end
                 for pos = parent_depth * 2, depth * 2 - 2 do
                     if get_char(M.lines[lnum_is_drawing], pos) == " " then
@@ -261,7 +277,9 @@ function M.render()
                         M.lines[lnum_is_drawing] = set_char_at(M.lines[lnum_is_drawing], pos, "┴")
                     end
                 end
-                M.lines[lnum_is_drawing] = set_char_at(M.lines[lnum_is_drawing], parent_depth * 2 - 1, "├")
+                if get_char(M.lines[lnum_is_drawing], parent_depth * 2 - 1) ~= "●" then
+                    M.lines[lnum_is_drawing] = set_char_at(M.lines[lnum_is_drawing], parent_depth * 2 - 1, "├")
+                end
             end
         elseif node.fork then
             M.lines[node_lnum] = set_char_at(M.lines[node_lnum], parent_depth * 2 - 1, "├")
@@ -276,7 +294,7 @@ function M.render()
     -- TODO: use extmarks
     do
         for i = 1, total do
-            local lnum = (total - i) * 2 + 1
+            local lnum = compact and total - i + 1 or (total - i) * 2 + 1
             local seq = M.id_2seq(i)
             local node = M.nodes[seq]
             local time

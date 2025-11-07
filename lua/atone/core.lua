@@ -17,10 +17,11 @@ local _tree_win, _float_win, _diff_win, _tree_buf, _help_buf, _manual_diff_buf, 
 --- position the cursor at a specific node in the tree graph
 ---@param id integer
 local function pos_cursor_by_id(id)
+    local compact = config.opts.ui.compact
     if id <= 0 then
-        api.nvim_win_set_cursor(_tree_win, { tree.total * 2 - 1, 0 })
+        api.nvim_win_set_cursor(_tree_win, { compact and tree.total or tree.total * 2 - 1, 0 })
     elseif id <= tree.total then
-        local lnum = (tree.total - id) * 2 + 1
+        local lnum = compact and tree.total - id + 1 or (tree.total - id) * 2 + 1
         local column = tree.nodes[tree.id_2seq(id)].depth * 2 - 1
         column = vim.str_byteindex(tree.lines[lnum], "utf-16", column - 1)
         api.nvim_win_set_cursor(_tree_win, { lnum, column })
@@ -38,8 +39,10 @@ end
 --- when the cursor is between two nodes, return the average (of their id).
 ---@return integer
 local function id_under_cursor()
-    --  2 * (last_id - cur_id) + 1 = lnum
-    return tree.total - (api.nvim_win_get_cursor(_tree_win)[1] - 1) / 2
+    -- compact: total - cur_id + 1 = lnum
+    -- otherwise: 2 * (total - cur_id) + 1 = lnum
+    local lnum = api.nvim_win_get_cursor(_tree_win)[1]
+    return config.opts.ui.compact and tree.total - lnum + 1 or tree.total - (lnum - 1) / 2
 end
 
 --- get the seq under cursor in _tree_win
@@ -210,7 +213,7 @@ function M.refresh()
             "AtoneCurrentNode",
             buf_lines[cur_line],
             cur_line,
-            tree.nodes[tree.cur_seq].depth * 2 - 1 -- use node_at() because we maybe go to the original node
+            tree.nodes[tree.cur_seq].depth * 2 - 1
         )
 
         local pre_seq = tree.nodes[tree.cur_seq].parent or -1

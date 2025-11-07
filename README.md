@@ -95,6 +95,8 @@ require("atone").setup({
     ui = {
         -- refer to `:h 'winborder'`
         border = "single",
+        -- compact graph style
+        compact = false,
     },
 })
 ```
