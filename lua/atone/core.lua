@@ -82,6 +82,19 @@ local mappings = {
         end,
         "Jump to previous node (v:count supported)",
     }, -- support v:count
+    jump_to_G = {
+        function()
+            pos_cursor_by_id(tree.seq_2id(vim.v.count))
+        end,
+        "Jump to the node with the specified sequence number like G",
+    },
+    jump_to_gg = {
+        function()
+            local target_seq = vim.v.count == 0 and tree.last_seq or vim.v.count
+            pos_cursor_by_id(tree.seq_2id(target_seq))
+        end,
+        "Jump to the node with the specified sequence number like gg",
+    },
     undo_to = {
         function()
             local seq = seq_under_cursor()

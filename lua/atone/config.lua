@@ -27,6 +27,8 @@ M.opts = {
             quit = { "<C-c>", "q" },
             next_node = "j", -- support v:count
             pre_node = "k", -- support v:count
+            jump_to_G = "G",
+            jump_to_gg = "gg",
             undo_to = "<CR>",
             help = { "?", "g?" },
         },
