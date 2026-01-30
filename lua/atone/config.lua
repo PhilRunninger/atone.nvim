@@ -45,6 +45,8 @@ M.opts = {
         border = "single",
         -- compact graph style
         compact = false,
+        -- refer to `:h `cursorline'`
+        cursorline = false,
     },
 }
 

@@ -34,6 +34,7 @@ function M.new_win(mode, buf, config, enter)
         winfixbuf = true,
         winfixwidth = true,
         wrap = false,
+        cursorline = require("atone.config").opts.ui.cursorline,
     }
 
     if mode == "float" then

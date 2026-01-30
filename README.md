@@ -20,7 +20,7 @@
 ## Features
 
 * **Blazing Fast**
-* **Mordern UI**
+* **Modern UI**
 * **Live Diff:** Instantly see the difference between the selected undo-history state and its parent.
 * **Auto-attaching Tree:** The undo tree automatically follows you as you switch between buffers.
 * **Highly Customizable:** Almost every aspect can be configured.
@@ -99,6 +99,8 @@ require("atone").setup({
         border = "single",
         -- compact graph style
         compact = false,
+        -- refer to `:h `cursorline'`
+        cursorline = false,
     },
 })
 ```
